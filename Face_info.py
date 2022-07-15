@@ -7,7 +7,7 @@ import cv2
 import time
 import re
 import timeit
-
+import json
 
 
 import os
@@ -19,7 +19,7 @@ from deepface.commons import functions, realtime, distance as dst
 from deepface.detectors import FaceDetector
 
 
-image = 'love.jpg'
+image = 'test.png'
 model_name = 'VGG-Face'
 detector_backend = 'opencv'
 distance_metric = 'cosine'
@@ -202,11 +202,24 @@ for face, (x, y, w, h) in faces:
                 return distance
 
             df['distance'] = df.apply(findDistance, axis = 1)
+
             df = df.sort_values(by = ["distance"])
 
             candidate = df.iloc[0]
             employee_name = candidate['employee']
             best_distance = candidate['distance']
+
+            if employee_name.find("Hung") != -1:
+                employee_name = 'Tran Duc Hung'
+            elif employee_name.find("Trung Hau") != -1:
+                employee_name = 'Tran Trung Hau'
+            elif employee_name.find("Son") != -1:
+                employee_name = 'Do Thai Son'
+            elif employee_name.find("Tien Anh") != -1:
+                employee_name = 'Nguyen Manh Tien Anh'
+            else:
+                employee_name = 'Bui Tung Anh'
+
 
             #print(candidate[['employee', 'distance']].values)
 
@@ -233,6 +246,8 @@ stop = timeit.default_timer()
 
 print('Time: ', stop - start)
 print(face_dict)
+with open("sample.json", "w") as outfile:
+    json.dump(face_dict, outfile)
 
 # with open('data.json', 'w', encoding='utf-8') as f:
 #     json.dump(obj, f, ensure_ascii=False, indent=4)
