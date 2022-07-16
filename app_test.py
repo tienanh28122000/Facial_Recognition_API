@@ -32,104 +32,6 @@ def add_cors_headers(response):
             response.headers['Access-Control-Allow-Headers'] = headers
     return response
 
-face_detector = FaceDetector.build_model(detector_backend)
-print("Detector backend is ", detector_backend)
-
-#------------------------
-
-input_shape = (224, 224); input_shape_x = input_shape[0]; input_shape_y = input_shape[1]
-
-text_color = (255,255,255)
-
-employees = []
-#check passed db folder exists
-if os.path.isdir(db_path) == True:
-    for r, d, f in os.walk(db_path): # r=root, d=directories, f = files
-        for file in f:
-            if ('.jpg' in file):
-                #exact_path = os.path.join(r, file)
-                exact_path = r + "/" + file
-                #print(exact_path)
-                employees.append(exact_path)
-
-if len(employees) == 0:
-    print("WARNING: There is no image in this path ( ", db_path,") . Face recognition will not be performed.")
-
-#------------------------
-
-if len(employees) > 0:
-
-    model = DeepFace.build_model(model_name)
-    print(model_name," is built")
-
-    #------------------------
-
-    input_shape = functions.find_input_shape(model)
-    input_shape_x = input_shape[0]; input_shape_y = input_shape[1]
-
-    #tuned thresholds for model and metric pair
-    threshold = dst.findThreshold(model_name, distance_metric)/1.2
-
-#------------------------
-#facial attribute analysis models
-
-
-
-tic = time.time()
-
-emotion_model = DeepFace.build_model('Emotion')
-print("Emotion model loaded")
-
-age_model = DeepFace.build_model('Age')
-print("Age model loaded")
-
-gender_model = DeepFace.build_model('Gender')
-print("Gender model loaded")
-
-toc = time.time()
-
-print("Facial attibute analysis models loaded in ",toc-tic," seconds")
-
-#------------------------
-
-#find embeddings for employee list
-
-tic = time.time()
-
-#-----------------------
-
-pbar = tqdm(range(0, len(employees)), desc='Finding embeddings')
-
-#TODO: why don't you store those embeddings in a pickle file similar to find function?
-
-embeddings = []
-#for employee in employees:
-for index in pbar:
-    employee = employees[index]
-    pbar.set_description("Finding embedding for %s" % (employee.split("/")[-1]))
-    embedding = []
-
-    #preprocess_face returns single face. this is expected for source images in db.
-    img = functions.preprocess_face(img = employee, target_size = (input_shape_y, input_shape_x), enforce_detection = False, detector_backend = detector_backend)
-    img_representation = model.predict(img)[0,:]
-
-    embedding.append(employee)
-    embedding.append(img_representation)
-    embeddings.append(embedding)
-
-dfr = pd.DataFrame(embeddings, columns = ['employee', 'embedding'])
-dfr['distance_metric'] = distance_metric
-
-toc = time.time()
-
-print("Embeddings found for given data set in ", toc-tic," seconds")
-
-#-----------------------
-
-pivot_img_size = 112 #face recognition result image
-
-#-----------------------
-
 
 app = Flask(__name__)
 app.after_request(add_cors_headers)
@@ -144,6 +46,106 @@ def home():
 def recognize():
     # data = request.get_json()[23:]
     # cv2.imwrite("output.jpg",(string_to_image(data)))
+
+    face_detector = FaceDetector.build_model(detector_backend)
+    print("Detector backend is ", detector_backend)
+
+    #------------------------
+
+    input_shape = (224, 224); input_shape_x = input_shape[0]; input_shape_y = input_shape[1]
+
+    text_color = (255,255,255)
+
+    employees = []
+    #check passed db folder exists
+    if os.path.isdir(db_path) == True:
+        for r, d, f in os.walk(db_path): # r=root, d=directories, f = files
+            for file in f:
+                if ('.jpg' in file):
+                    #exact_path = os.path.join(r, file)
+                    exact_path = r + "/" + file
+                    #print(exact_path)
+                    employees.append(exact_path)
+
+    if len(employees) == 0:
+        print("WARNING: There is no image in this path ( ", db_path,") . Face recognition will not be performed.")
+
+    #------------------------
+
+    if len(employees) > 0:
+
+        model = DeepFace.build_model(model_name)
+        print(model_name," is built")
+
+        #------------------------
+
+        input_shape = functions.find_input_shape(model)
+        input_shape_x = input_shape[0]; input_shape_y = input_shape[1]
+
+        #tuned thresholds for model and metric pair
+        threshold = dst.findThreshold(model_name, distance_metric)/1.5
+
+    #------------------------
+    #facial attribute analysis models
+
+
+
+    tic = time.time()
+
+    emotion_model = DeepFace.build_model('Emotion')
+    print("Emotion model loaded")
+
+    age_model = DeepFace.build_model('Age')
+    print("Age model loaded")
+
+    gender_model = DeepFace.build_model('Gender')
+    print("Gender model loaded")
+
+    toc = time.time()
+
+    print("Facial attibute analysis models loaded in ",toc-tic," seconds")
+
+    #------------------------
+
+    #find embeddings for employee list
+
+    tic = time.time()
+
+    #-----------------------
+
+    pbar = tqdm(range(0, len(employees)), desc='Finding embeddings')
+
+    #TODO: why don't you store those embeddings in a pickle file similar to find function?
+
+    embeddings = []
+    #for employee in employees:
+    for index in pbar:
+        employee = employees[index]
+        pbar.set_description("Finding embedding for %s" % (employee.split("/")[-1]))
+        embedding = []
+
+        #preprocess_face returns single face. this is expected for source images in db.
+        img = functions.preprocess_face(img = employee, target_size = (input_shape_y, input_shape_x), enforce_detection = False, detector_backend = detector_backend)
+        img_representation = model.predict(img)[0,:]
+
+        embedding.append(employee)
+        embedding.append(img_representation)
+        embeddings.append(embedding)
+
+    df = pd.DataFrame(embeddings, columns = ['employee', 'embedding'])
+    df['distance_metric'] = distance_metric
+
+    toc = time.time()
+
+    print("Embeddings found for given data set in ", toc-tic," seconds")
+
+    #-----------------------
+
+    pivot_img_size = 112 #face recognition result image
+
+    #-----------------------
+
+
     data = request.files['image']
     img = Image.open(data)
     img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -205,7 +207,7 @@ def recognize():
         #face recognition
         face_image = functions.preprocess_face(img = face_image, target_size = (input_shape_y, input_shape_x), enforce_detection = False, detector_backend = 'opencv')
         if face_image.shape[1:3] == input_shape:
-            if dfr.shape[0] > 0: #if there are images to verify, apply face recognition
+            if df.shape[0] > 0: #if there are images to verify, apply face recognition
                 img1_representation = model.predict(face_image)[0,:]
 
                 #print(freezed_frame," - ",img1_representation[0:5])
@@ -224,9 +226,9 @@ def recognize():
 
                     return distance
 
-                dfr['distance'] = dfr.apply(findDistance, axis = 1)
+                df['distance'] = df.apply(findDistance, axis = 1)
 
-                df = dfr.sort_values(by = ["distance"])
+                df = df.sort_values(by = ["distance"])
 
                 candidate = df.iloc[0]
                 employee_name = candidate['employee']
