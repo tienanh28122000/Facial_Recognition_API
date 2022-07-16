@@ -242,6 +242,8 @@ def recognize():
                     employee_name = 'Nguyen Manh Tien Anh'
                 elif employee_name.find("Dao Vinh Linh") != -1:
                     employee_name = 'Dao Vinh Linh'
+                elif employee_name.find("Dang Tuan Linh") != -1:
+                    employee_name = 'Dr. Dang Tuan Linh'
                 else:
                     employee_name = 'Bui Tung Anh'
 
