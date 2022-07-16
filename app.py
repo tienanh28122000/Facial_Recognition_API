@@ -6,6 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import time
 import json
+from PIL import Image
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -21,6 +22,16 @@ detector_backend = 'opencv'
 distance_metric = 'cosine'
 db_path = 'database/'
 face_dict={}
+
+
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    if request.method == 'OPTIONS':
+        response.headers['Access-Control-Allow-Methods'] = 'DELETE, GET, POST, PUT'
+        headers = request.headers.get('Access-Control-Request-Headers')
+        if headers:
+            response.headers['Access-Control-Allow-Headers'] = headers
+    return response
 
 face_detector = FaceDetector.build_model(detector_backend)
 print("Detector backend is ", detector_backend)
@@ -107,8 +118,8 @@ for index in pbar:
     embedding.append(img_representation)
     embeddings.append(embedding)
 
-df = pd.DataFrame(embeddings, columns = ['employee', 'embedding'])
-df['distance_metric'] = distance_metric
+dfr = pd.DataFrame(embeddings, columns = ['employee', 'embedding'])
+dfr['distance_metric'] = distance_metric
 
 toc = time.time()
 
@@ -119,15 +130,6 @@ print("Embeddings found for given data set in ", toc-tic," seconds")
 pivot_img_size = 112 #face recognition result image
 
 #-----------------------
-
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    if request.method == 'OPTIONS':
-        response.headers['Access-Control-Allow-Methods'] = 'DELETE, GET, POST, PUT'
-        headers = request.headers.get('Access-Control-Request-Headers')
-        if headers:
-            response.headers['Access-Control-Allow-Headers'] = headers
-    return response
 
 
 app = Flask(__name__)
@@ -144,10 +146,13 @@ def recognize():
     # data = request.get_json()[23:]
     # cv2.imwrite("output.jpg",(string_to_image(data)))
     data = request.files['image']
-    img = cv2.imread(data)
+    img = Image.open(data)
+    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     faces = FaceDetector.detect_faces(face_detector, detector_backend, img, align = False)
     # print ("Found {0} faces!".format(len(faces[1])))
     detected_faces = 0
+    dfr
+    
 
     for face, (x, y, w, h) in faces:
         # face_image = image[int(y):int(y+h), int(x):int(x+w)]
@@ -159,7 +164,7 @@ def recognize():
         # print(obj)
         # print(df)
     # for detected_face in detected_faces:
-        print('--------------------------------')
+        # print('--------------------------------')
         # x = detected_face[0]; y = detected_face[1]
         # w = detected_face[2]; h = detected_face[3]
         face_image = img[y:y+h, x:x+w]
@@ -195,12 +200,12 @@ def recognize():
         elif np.argmax(gender_prediction) == 1:
             gender = "Man"
 
-        print(str(int(apparent_age))+" "+gender+" "+emotion_df["emotion"][0])
+        # print(str(int(apparent_age))+" "+gender+" "+emotion_df["emotion"][0])
 
         #face recognition
         face_image = functions.preprocess_face(img = face_image, target_size = (input_shape_y, input_shape_x), enforce_detection = False, detector_backend = 'opencv')
         if face_image.shape[1:3] == input_shape:
-            if df.shape[0] > 0: #if there are images to verify, apply face recognition
+            if dfr.shape[0] > 0: #if there are images to verify, apply face recognition
                 img1_representation = model.predict(face_image)[0,:]
 
                 #print(freezed_frame," - ",img1_representation[0:5])
@@ -219,9 +224,9 @@ def recognize():
 
                     return distance
 
-                df['distance'] = df.apply(findDistance, axis = 1)
+                dfr['distance'] = dfr.apply(findDistance, axis = 1)
 
-                df = df.sort_values(by = ["distance"])
+                df = dfr.sort_values(by = ["distance"])
 
                 candidate = df.iloc[0]
                 employee_name = candidate['employee']
@@ -241,10 +246,7 @@ def recognize():
 
                 #print(candidate[['employee', 'distance']].values)
 
-                #if True:
-                if best_distance <= threshold:
-                    print(employee_name)
-                else:
+                if best_distance > threshold:
                     employee_name = 'Unknown'
 
         face_inf = {
@@ -257,11 +259,11 @@ def recognize():
         face_dict[detected_faces] = face_inf
         detected_faces+=1
 
-    print('Found ', detected_faces, ' faces')
+    # print('Found ', detected_faces, ' faces')
 
-    print(face_dict)
-    with open("sample.json", "w") as outfile:
-        json.dump(face_dict, outfile)
+    # print(face_dict)
+    # with open("sample.json", "w") as outfile:
+    #     json.dump(face_dict, outfile)
         
     return jsonify(face_dict)
 
