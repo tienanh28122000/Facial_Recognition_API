@@ -16,9 +16,9 @@ from deepface.extendedmodels import Age
 from deepface.commons import functions, realtime, distance as dst
 from deepface.detectors import FaceDetector
 
-
-model_name = 'VGG-Face'
-detector_backend = 'opencv'
+model_name = 'Facenet512'
+# model_name = 'VGG-Face'
+detector_backend = 'retinaface'
 distance_metric = 'cosine'
 db_path = 'database/'
 
@@ -68,7 +68,7 @@ if len(employees) > 0:
     input_shape_x = input_shape[0]; input_shape_y = input_shape[1]
 
     #tuned thresholds for model and metric pair
-    threshold = dst.findThreshold(model_name, distance_metric)/1.2
+    threshold = dst.findThreshold(model_name, distance_metric)
 
 #------------------------
 #facial attribute analysis models
@@ -232,14 +232,16 @@ def recognize():
                 employee_name = candidate['employee']
                 best_distance = candidate['distance']
 
-                if employee_name.find("Hung") != -1:
+                if employee_name.find("Tran Duc Hung") != -1:
                     employee_name = 'Tran Duc Hung'
-                elif employee_name.find("Trung Hau") != -1:
+                elif employee_name.find("Tran Trung Hau") != -1:
                     employee_name = 'Tran Trung Hau'
-                elif employee_name.find("Son") != -1:
+                elif employee_name.find("Do Thai Son") != -1:
                     employee_name = 'Do Thai Son'
-                elif employee_name.find("Tien Anh") != -1:
+                elif employee_name.find("Nguyen Manh Tien Anh") != -1:
                     employee_name = 'Nguyen Manh Tien Anh'
+                elif employee_name.find("Dao Vinh Linh") != -1:
+                    employee_name = 'Dao Vinh Linh'
                 else:
                     employee_name = 'Bui Tung Anh'
 
